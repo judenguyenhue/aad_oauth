@@ -5,6 +5,7 @@ import 'package:webview_flutter/webview_flutter.dart';
 
 import 'model/config.dart';
 import 'request/authorization_request.dart';
+import 'package:webview_flutter_android/webview_flutter_android.dart';
 
 class RequestCode {
   final Config _config;
@@ -12,6 +13,8 @@ class RequestCode {
   final String _redirectUriHost;
   late NavigationDelegate _navigationDelegate;
   String? _code;
+  late final WebViewController controller;
+  final cookieManager = WebViewCookieManager();
 
   RequestCode(Config config)
       : _config = config,
@@ -19,6 +22,15 @@ class RequestCode {
         _redirectUriHost = Uri.parse(config.redirectUri).host {
     _navigationDelegate = NavigationDelegate(
       onNavigationRequest: _onNavigationRequest,
+      onWebResourceError: (error) {
+        print('onWebResource error: ${error.description}');
+      },
+      onUrlChange: (url) {
+        print('onUrlChange: ${url.url ?? ""}');
+      },
+      onPageFinished: (url) {
+        print('onPageFinished: $url');
+      },
     );
   }
 
@@ -27,10 +39,17 @@ class RequestCode {
 
     final urlParams = _constructUrlParams();
     final launchUri = Uri.parse('${_authorizationRequest.url}?$urlParams');
-    final controller = WebViewController();
+    controller = WebViewController();
     await controller.setNavigationDelegate(_navigationDelegate);
     await controller.setJavaScriptMode(JavaScriptMode.unrestricted);
-
+    final WebViewCookieManager cookieManager = WebViewCookieManager();
+    if (WebViewPlatform.instance is AndroidWebViewPlatform) {
+      final AndroidWebViewCookieManager androidManager =
+          cookieManager.platform as AndroidWebViewCookieManager;
+      androidManager.setAcceptThirdPartyCookies(
+          controller.platform as AndroidWebViewController, true);
+      print('web controller accepted 3rd party cookies');
+    }
     await controller.setBackgroundColor(Colors.transparent);
     await controller.setUserAgent(_config.userAgent);
     await controller.loadRequest(launchUri);
@@ -85,7 +104,9 @@ class RequestCode {
         _code = uri.queryParameters['code'];
         _config.navigatorKey.currentState!.pop();
       }
-    } catch (_) {}
+    } catch (e) {
+      print('onNavigationRequest error: $e');
+    }
     return NavigationDecision.navigate;
   }
 
