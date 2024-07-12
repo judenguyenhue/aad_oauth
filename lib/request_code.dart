@@ -24,15 +24,11 @@ class RequestCode {
       onNavigationRequest: _onNavigationRequest,
       onWebResourceError: (error) {
         String url = error.url ?? "";
-        if (url.isEmpty || !url.contains('http')) {
-          print('===onWebResource error: empty or non-http url load');
-        } else {
-          print('===onWebResource error: ${error.description}, url: $url');
-          showErrorMessage(
-            _config.navigatorKey.currentState?.overlay?.context,
-            'Load web source failed: ${error.description}, url: $url',
-          );
-        }
+        print('===onWebResource error: ${error.description}, url: $url');
+        showErrorMessage(
+          _config.navigatorKey.currentState?.overlay?.context,
+          'Load web source failed: ${error.description}, url: $url',
+        );
       },
       onUrlChange: (url) {
         print('===onUrlChange: ${url.url ?? ""}');
